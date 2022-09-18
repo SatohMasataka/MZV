@@ -43,11 +43,11 @@ class mzv():
     index=np.array([]) # index に numpyのarray型に空のリストを入れたものを格納する
     
     def __init__(self,*args): #インスタンス化メソッド (初期値の設定)
-        #self.index=np.array(args,dtype=object) with this we can use mzv(3,2,1) instead of mzv([3,2,1]). But also need to change in the rest of the program
-        if len(args) == 1: #入力された値(arg)の長さが1である場合
-            self.index=np.array(args[0],dtype=object) #self.indexにnumpyのarray型で文字列args[0]を格納する
-                                                        #つまり初期値で１文字の時char型でなく文字列として格納するようにする
-    
+        self.index=np.array(args,dtype=object) 
+        #   if len(args) == 1: #入力された値(arg)の長さが1である場合
+        #     self.index=np.array(args[0],dtype=object) #self.indexにnumpyのarray型で文字列args[0]を格納する
+        #                                              #つまり初期値で１文字の時char型でなく文字列として格納するようにする
+ 
     def weight(self):
         return self.index.sum()
     # Length of a mzv
@@ -91,18 +91,18 @@ class mzv():
         if len(self.index)==1: #最初からmzvの長さが1である場合は空のmzvを返す
             return mzv()
         else: #その他の場合(長さが１より長い)
-            return mzv(self.index[1:]) #最初のmzvから先頭の一文字消した値を返す
-                
+            return mzv(*self.index[1:]) #最初のmzvから先頭の一文字消した値を返す
+             
     # Translates the mzv in z_j into the 01-alphabet
     #入力されたmzv　の値を0, 1で変換する。 (dualなどで利用できる)
     def makeXY(self):
         z=[] #リスト型の空の z を用意する
         for w in self.index:
             for j in range(w-1): #jがw-1個 z に [0]を追加する
-                    z.append(0) 
+                  z.append(0) 
             z.append(1) #ループ終わりに　[1]を追加する (つまり、w個目に初めて１が出るリスト)
             
-        return mzv(z) #用意した z をmzv型に変換して返す
+        return mzv(*z) #用意した z をmzv型に変換して返す
     
     
     # Translates the mzv in 01 into the z-alphabet
@@ -117,13 +117,13 @@ class mzv():
                 i+=1 #i　に１を加える
                 z.append(i) #z にこれまで数えてきた [i] を追加する
                 i=0 # i を0に戻す
-        return mzv(z) # zをmzv型にして返す
+        return mzv(*z) # zをmzv型にして返す
     
     #Dual of this mzv
     #mzvに対しての "Dual"関数の定義
     def dual(self):
         t=self.makeXY() #用意されたmzvをmakeXY関数により0,1に変換したものを t に格納
-            
+         
         for i in range(len(t.index)): #tの長さだけループする
             if t.index[i]==0: #tの i　番目の 0 であるとき
                 t.index[i]=1 #t の　i 番目を１にする
@@ -132,7 +132,7 @@ class mzv():
                 
         l=t.index[::-1] #tの並び順を反転させたものを l に格納する (l　は　リスト型)
         
-        return mzv(l).makeZ() #lをmzv型にしてmakeZ関数を通してz_  の形にする
+        return mzv(*l).makeZ() #lをmzv型にしてmakeZ関数を通してz_  の形にする
     
 
     # harmonic product 
@@ -145,7 +145,7 @@ class mzv():
     #mzv型でのシャッフル積を%を用いて定義(ここでの定義はmzvlincomb で定義されたものを引用しているため詳しい仕組みはそちらで確認)
     def __mod__(self, other):
         return other % mzvlincomb(self)
-        
+       
     # index shuffle product      
     #mzv型でのindex シャッフル積を**を用いて定義(ここでの定義はmzvlincomb で定義されたものを引用しているため詳しい仕組みはそちらで確認)
     def __pow__(self, other):
@@ -162,10 +162,7 @@ class mzv():
     
     #文字列表現のためのメソッド(オリジナルのルールで文字列を作成する)
     def __str__(self):
-        if len(self.index)==0: #値(mzv型)が空の場合 文字列としての[]を返す
-            return "[]"
-        else: #値(mzv型)が空でない場合 文字列として返す(self.index[1:-1]は最初の"["と最後の"]”を省略するために用いている)
-            return "["+str(self.index)[1:-1].replace(" ", ",")+"]"
+        return repr(self)
     
     # Todo: Given back the mzv in latex form. Instead of "[1,2,3]" give "z_1 z_2 z_3"
     def toLatex(self):
@@ -179,7 +176,15 @@ class mzv():
             return s
         
         
+    
+    def simplifyN(self,prec=50,c=1000):
         
+        rel=mzvlincomb()
+        rel.addmzv(1,self)
+        
+        return  rel.simplifyN(prec,c)
+    
+    
         
     def toHoffman(self):
 
@@ -193,7 +198,7 @@ class mzv():
         A=conjecturematrix(k)[0]
         B=indvectorlist(rel)
         for u in sorted(where23(k), reverse=True):
-                del B[u]
+             del B[u]
         
         #print(B)
         s=remove23(k)
@@ -207,7 +212,7 @@ class mzv():
         for n in where23(k):
             t=np.array(indices(k)[n])
             if U[n] != 0:
-                ss.addmzv(U[n],mzv(t))
+                ss.addmzv(U[n],mzv(*t))
             
         return ss
     
@@ -226,7 +231,7 @@ class mzv():
             l+=[indices(k)[i]]
             
         for m in l:
-            s+=[(-1)*mzv(np.array(m)).toMZV()]
+            s+=[(-1)*mzv(*m).toMZV()]
         
         lis=list(gp.lindep(s))
         
@@ -237,7 +242,7 @@ class mzv():
         i=0
         
         for n in lis:
-            rel.addmzv(n/dd,mzv(np.array(l[i])))
+            rel.addmzv(n/dd,mzv(*l[i]))
             i+=1
             
         return rel
@@ -246,48 +251,9 @@ class mzv():
     
     
     
-    
-    
-    
-    
-    
-    
-    def simplify(self):
+    def polyzeta(self): #w は wordを想定している
+        return mzvlincomb(self).polyzeta() 
 
-        if simplify(self.index.tolist()):
-            return mzvlincomb(self)
-        
-        ss=mzvlincomb()
-        rel=mzvlincomb()
-        rel.addmzv(1,self)
-        k=sum(self.index.tolist())
-        A=conjecturematrix(k)[0]
-        B=indvectorlist(rel)
-        for u in sorted(where23(k), reverse=True):
-                del B[u]
-        print(B)
-        s=remove23(k)
-        #Y=A[s,[j for j in range(len(s))]]
-        Y=A[s]
-        x=Y.solve_right(vector(B))
-        #print(x)
-        #print(Y)
-        U=-A*x    
-        
-        for n in where23(k):
-            t=np.array(indices(k)[n])
-            if U[n] != 0:
-                ss.addmzv(U[n],mzv(t))
-            
-        return ss
-    
-    
-    
-    
-    
-    
-    
-    
 
     def toMZVLatex(self):      
         print(self.toMZVLatex1())
@@ -314,11 +280,11 @@ class mzv():
         while(1):
         
             if len(t.index.tolist())==0:
-                #  return "困った"
+              #  return "困った"
                 break
             
             if t.index[0]==0:
-                    break
+                 break
             j+=1
             t=t.removeFirstLetter()
             
@@ -329,8 +295,8 @@ class mzv():
         for i in range(j+1):
             p=[]
             p=countY(j-i).index.tolist()+w.index.tolist()
-            s.addLinComb((-1)^(i)/factorial(i)*contistY(i)*mzv(p))
-            # print(s)
+            s.addLinComb((-1)^(i)/factorial(i)*contistY(i)*mzv(*p))
+           # print(s)
         
         if len(s.lincomb)==0:
             return 0
@@ -344,11 +310,11 @@ class mzv():
 
         while(1):
             if len(t.index.tolist())==0:
-                # return "困った"
+               # return "困った"
                 break
             
             if t.index[0]==0:
-                    break
+                 break
             j+=1
             t=t.removeFirstLetter()
             
@@ -358,8 +324,8 @@ class mzv():
         for i in range(j+1):
             p=[]
             p=countY(j-i).index.tolist()+w.index.tolist()
-            s.addLinComb((-1)^(i)*countY(i)%mzv(p)) 
-            # print(s)
+            s.addLinComb((-1)^(i)*countY(i)%mzv(*p)) 
+           # print(s)
         
         if len(s.lincomb)==0:
             return 0
@@ -387,8 +353,15 @@ class mzv():
             return ret # ret(mzvlincomb型)を返す
             
         if isinstance(other, mzv): #otherがmzv型の場合
-            return mzv(np.concatenate((self.index,other.index))) #selfとotherを連結した値(mzv型)を返す
+            return mzv(*np.concatenate((self.index,other.index))) #selfとotherを連結した値(mzv型)を返す
     
+    
+    
+    
+    
+    
+    
+#---------------------------------------------------mzvlincomb--------------------------------------------------------------#
 #mzv の線型結合を意識したclass 
 #値は [ [factor, mzv]  , [factor2, mzv2] , ...      ] の形になるようにする
 class mzvlincomb:
@@ -429,8 +402,8 @@ class mzvlincomb:
         
         return ret # ret を返す
         
-        # Scalar multiplication from the left
-        #mzvlincomb型のスカラー倍を定義する(返すのはmzvlincomb型である)
+     # Scalar multiplication from the left
+     #mzvlincomb型のスカラー倍を定義する(返すのはmzvlincomb型である)
     def __rmul__(self, other): #rmul は* の演算子であり右側の元のルールに従う (mulは左)
         if isinstance(other,sage.rings.rational.Rational) or isinstance(other,sage.rings.integer.Integer):#otherが　有理数(整数を含む)型である場合
             ret=mzvlincomb(); #空のmzvlincomb型のretを用意する
@@ -473,11 +446,11 @@ class mzvlincomb:
                     b=v[1].index[0] # v の mzv の最初の一文字を a に格納する
                     
                     #z_p (w1 * z_q w2)
-                    ret.addLinComb( w[0]*v[0] * (mzv([a]) & (w[1].removeFirstLetter() * mzvlincomb(v[1]) )) )
+                    ret.addLinComb( w[0]*v[0] * (mzv(a) & (w[1].removeFirstLetter() * mzvlincomb(v[1]) )) )
                     #z_q(z_p w1 * w2)
-                    ret.addLinComb( w[0]*v[0] * (mzv([b]) & (mzvlincomb(w[1]) * v[1].removeFirstLetter() ) )) 
+                    ret.addLinComb( w[0]*v[0] * (mzv(b) & (mzvlincomb(w[1]) * v[1].removeFirstLetter() ) )) 
                     #z_p+q(w1 * w2)
-                    ret.addLinComb( w[0]*v[0] * (mzv([a+b]) & (w[1].removeFirstLetter() * v[1].removeFirstLetter() )) )
+                    ret.addLinComb( w[0]*v[0] * (mzv(a+b) & (w[1].removeFirstLetter() * v[1].removeFirstLetter() )) )
         return ret # ret を返す
     
     
@@ -520,17 +493,17 @@ class mzvlincomb:
                     b=v[1].index[0] # v の mzv の最初の一文字を b に格納する
                     
                     # a ( w ** bv)
-                    ret.addLinComb( w[0]*v[0] * (mzv([a]) & (w[1].removeFirstLetter() ** mzvlincomb(v[1]) )) )
+                    ret.addLinComb( w[0]*v[0] * (mzv(a) & (w[1].removeFirstLetter() ** mzvlincomb(v[1]) )) )
                     # b ( aw ** b)
-                    ret.addLinComb( w[0]*v[0] * (mzv([b]) & (mzvlincomb(w[1]) ** v[1].removeFirstLetter() ) )) 
+                    ret.addLinComb( w[0]*v[0] * (mzv(b) & (mzvlincomb(w[1]) ** v[1].removeFirstLetter() ) )) 
         return ret # ret を返す
-            
+          
     # Gives the coefficient of the mzv "index"    
     # self の中に格納されている mzv 中から引数と同じ mzv がある場合はその係数を返す関数　（特に、ない場合は0を返す） 
     #後に、関係式を作りその際に係数からなる行列を作成する際に利用する
     def getCoefficient(self,index):
         for t in self.lincomb:
-            if t[1]==mzv(index): # self  の mzv の中でmzv型にした引数　index と等しいとき t[0] (selfの係数)を返す
+            if t[1]==mzv(*index): # self  の mzv の中でmzv型にした引数　index と等しいとき t[0] (selfの係数)を返す
                 return t[0]
         return 0  #その他のとき0を返す
     
@@ -576,7 +549,7 @@ class mzvlincomb:
                     # the mzv w is not there yet, so add it
                 self.lincomb.append([factor,w]) #計算したfactorと引数のmzv型　wを組みにしてlincomb型に追加する
         
-        
+     
     # Add a linear combination of mzv to the current linear combination
     #addlinConb関数を定義
     #linconb型同士を１つにまとめる演算を作る 上で定義したmzv型とmzvlincomb型をまとめるaddmzv関数を利用して作成する
@@ -623,7 +596,62 @@ class mzvlincomb:
             
         
         return rel
+    
+    def polyzeta(self,prec=100,c=10000):
+        gp.set_precision(prec)
+        k=self.weight()
+        P=Partitions(k).list()
+        Pr = [i for i in P if (1 not in i) and checkpr(i)]
+
+        l=[self.toMZV()]
+        #print("Products:", Pr)
+        for p in Pr:
+            prod=1
+            for el in p:
+                prod*=gp.zeta(el)
+            l+=[prod]
+        #print(lis)
+
+        lis=list(gp.lindep(l))
+        i=0
+        for n in lis:
+            if abs(int(n)) < c:
+                i+=1
+
+        if i==len(lis):
+            dd=lis[0]
+            lis=lis[1:]
+            lis=[-1*i/dd for i in lis]
+
+        else:
+            return repr(self)+" seems not to be a polynomial in single zetas."
+
+
+        return [lis,Pr]
         
+    
+    
+    def toHoffman(self):
+        
+        ret=mzvlincomb()
+        
+        for n in self.lincomb:
+            ret.addLinComb(n[0]*n[1].toHoffman())
+            
+        return ret
+    
+    def toHoffmanN(self,prec=100):
+        
+        gp.set_precision(prec)
+        ret=mzvlincomb()
+        
+        for n in self.lincomb:
+            ret.addLinComb(n[0]*n[1].toHoffmanN())
+            
+        return ret
+    
+    
+    
         
     
     
@@ -689,7 +717,7 @@ class mzvlincomb:
             
         pass
     
-    def simplifyN(self,prec,c=1000):
+    def simplifyN(self,prec=50,c=1000):
     
         gp.set_precision(prec)
         w=self.weight()
@@ -700,7 +728,7 @@ class mzvlincomb:
             s=[self.toMZV()]
             t=[]
             for m in l:
-                s+=[(-1)*mzv(np.array(m)).toMZV()]
+                s+=[(-1)*mzv(*m).toMZV()]
                 t+=[m]
                 lis=list(gp.lindep(s))
 
@@ -716,7 +744,7 @@ class mzvlincomb:
                         lis=lis[1:]
                         i=0
                         for n in lis:
-                            rel.addmzv(n/dd,mzv(np.array(t[i])))
+                            rel.addmzv(n/dd,mzv(*t[i]))
                             i+=1
 
                         return rel
@@ -728,7 +756,7 @@ class mzvlincomb:
     
     
 
-        
+      
 #後に重さkのadmissible indexを全て列挙する関数 indicesを定義する際に用いる
 #separate1 は　重さ k に対しての1つの数または2つの数を　１組にしたindexを集める(特に、２組の場合は左の数字は１より大きい)
 def separate1(x): #引数 x は重さを想定している
@@ -789,7 +817,7 @@ def indices(x): #引数 x は重さを想定している
 #double shuffle : w \shuffle v - w * v で定義されている ("finite"であるか否かは入力のmzvによる　 \mathfrak{H}_0か否か)
 #ここでは\shuffle --> *  , *  --> % が対応している
 def doubleshuffle(w,v):
-    return mzv(w) * mzv(v) +(-1)*(mzv(w) % mzv(v))
+    return mzv(*w) % mzv(*v) +(-1)*(mzv(*w) * mzv(*v))
 
 
 # Write all finite double shuffle relations into a matrix
@@ -839,7 +867,7 @@ def extrelationmatrix(k): #Make matrix
                 rel=doubleshuffle(w1,w2) #gen1 と gen2 の double shuffle の計算結果を rel に格納する
                 col=[] #空のリスト型 col を用意する
                 for g in gen: # col に getCoffucient関数(引数と同じ mzv があれば係数を返す関数)を通して得た値を col に格納する
-                                #もう少し詳しく、rel の中で g (重さ k の index)と同じ mzv があれば col に格納する
+                             #もう少し詳しく、rel の中で g (重さ k の index)と同じ mzv があれば col に格納する
                     col.append(rel.getCoefficient(g))
                 M.append(col) #上で計算した col を M に追加していく
                 
@@ -896,18 +924,18 @@ def extradim(k):
 #特にこのプログラムはconjecturematrixを用いて計算している
 def Condim(k):
     A=conjecturematrix(k)
-    return 2^(k-2)-np.linalg.matrix_rank(A[0])
+    return 2^(k-2)-np.linalg.matrix_rank(A[0]).T
 
 
 #dualvector関数を作成する。これは、indexを引数として、indexの重さ全体のベクトルから考えた時のそのindexとdualのベクトルを作成する
 def dualvector(ind): #引数 ind は indexを想定している
     k=sum(ind) #引数の重さ k
     s=[] #空のリスト型 col を用意する
-    t=mzv(ind).dual() #tに引数のindexのdealを格納する
+    t=mzv(*ind).dual() #tに引数のindexのdealを格納する
     for n in indices(k):
-        if mzv(n)==mzv(ind): #　n(重さkを走る) が 引数と等しい場合　
+        if mzv(*n)==mzv(*ind): #　n(重さkを走る) が 引数と等しい場合　
             s.append(1) #sに1を格納する
-        elif mzv(n)==t:  #　n(重さkを走る) が 引数のdualと等しい場合　
+        elif mzv(*n)==t:  #　n(重さkを走る) が 引数のdualと等しい場合　
             s.append(-1) #sに-1を格納する
         else:  s.append(0) #その他は0
         
@@ -972,13 +1000,13 @@ def wightlist(rel): #[4,[ weght 4 list... ], 5, [ weght 5 list... ]]
         t+=[n[1].index.tolist()]
 
     while(1):
-        
+       
         w=t[0]
         s+=[sum(w)]
         gen=mzvlincomb()
         for n in rel.lincomb:
             if sum(w)==sum(n[1].index.tolist()):
-                gen.addmzv(n[0],mzv(n[1].index))
+                gen.addmzv(n[0],mzv(*n[1].index))
                 t.remove(n[1].index.tolist())
         s+=[gen]
         l+=[s]
@@ -1021,19 +1049,19 @@ def countY(i):
     # Short version: s=[1 for i in range(i)]
     # Shortest version: s=[1]*i
         
-    return mzv(s)
+    return mzv(*s)
 
 def contistY(i):
     
     ret=mzvlincomb()
     if i==0:
-        ret.addmzv(1,mzv([]))
+        ret.addmzv(1,mzv())
     if i>=1:
-        ret.addmzv(1,mzv([1]))
+        ret.addmzv(1,mzv(1))
 
     if i>=2:
         for j in range(i-1):
-            ret=ret*mzv([1])
+            ret=ret*mzv(1)
     
         
     return ret
@@ -1058,14 +1086,14 @@ def reltoLatex(rel):
                     if cr[0][0][i] > 0:
                         s+="+"+str(cr[0][0][i])+"ds("
                         for j in range(len(cr[0][1][i])):
-                            s+=mzv(np.array(cr[0][1][i][j])).toLatex()
+                            s+=mzv(*np.array(cr[0][1][i][j])).toLatex()
                             if j!=len(cr[0][1][i])-1:
                                 s+=","
                         s+=")"
                     elif cr[0][0][i] < 0:
                         s+="-"+str(abs(cr[0][0][i]))+"ds("
                         for j in range(len(cr[0][1][i])):
-                            s+=mzv(np.array(cr[0][1][i][j])).toLatex()
+                            s+=mzv(*np.array(cr[0][1][i][j])).toLatex()
                             if j!=len(cr[0][1][i])-1:
                                 s+=","
                         s+=")"
@@ -1073,7 +1101,7 @@ def reltoLatex(rel):
                 elif cr[0][0][i]==1: # 1 の時
                         s+="+"+"ds("
                         for j in range(len(cr[0][1][i])):
-                            s+=mzv(np.array(cr[0][1][i][j])).toLatex()
+                            s+=mzv(*np.array(cr[0][1][i][j])).toLatex()
                             if j!=len(cr[0][1][i])-1:
                                 s+=","
                         s+=")"
@@ -1081,7 +1109,7 @@ def reltoLatex(rel):
                 elif cr[0][0][i]==-1:
                         s+="-"+"ds("
                         for j in range(len(cr[0][1][i])):
-                            s+=mzv(np.array(cr[0][1][i][j])).toLatex()
+                            s+=mzv(*np.array(cr[0][1][i][j])).toLatex()
                             if j!=len(cr[0][1][i])-1:
                                 s+=","
                         s+=")"
@@ -1092,22 +1120,22 @@ def reltoLatex(rel):
                         if cr[0][0][i] > 0:
                                 s+="+ \\frac{"+ str(abs(numerator(cr[0][0][i])))+"}{"+str(denominator(cr[0][0][i]))+"}ds("
                                 for j in range(len(cr[0][1][i])):
-                                    s+=mzv(np.array(cr[0][1][i][j])).toLatex()
+                                    s+=mzv(*np.array(cr[0][1][i][j])).toLatex()
                                     if j!=len(cr[0][1][i])-1:
                                         s+=","
                                 s+=")"
                         elif cr[0][0][i] < 0:
                             s+="- \\frac{"+ str(abs(numerator(cr[0][0][i])))+"}{"+str(denominator(cr[0][0][i]))+"}ds("
                             for j in range(len(cr[0][1][i])):
-                                s+=mzv(np.array(cr[0][1][i][j])).toLatex()
+                                s+=mzv(*np.array(cr[0][1][i][j])).toLatex()
                                 if j!=len(cr[0][1][i])-1:
-                                        s+=","
+                                     s+=","
                             s+=")"
                     
                     elif cr[0][0][i]==1:
                             s+="+"+"ds("
                             for j in range(len(cr[0][1][i])):
-                                s+=mzv(np.array(cr[0][1][i][j])).toLatex()
+                                s+=mzv(*np.array(cr[0][1][i][j])).toLatex()
                                 if j==len(cr[0][1][i])-1:
                                     s+=","
                             s+=")"
@@ -1115,7 +1143,7 @@ def reltoLatex(rel):
                     elif cr[0][0][i]==-1:
                             s+="-"+"ds("
                             for j in range(len(cr[0][1][i])):
-                                    s+=mzv(np.array(cr[0][1][i][j])).toLatex()
+                                    s+=mzv(*np.array(cr[0][1][i][j])).toLatex()
                                     if j==len(cr[0][1][i])-1:
                                         s+="," 
                             s+=")"
@@ -1146,6 +1174,15 @@ def where23(k): #k is weight
             s+=[c]      
 
     return s #2 と3のみのリストの番号を返す
+            
+        
+
+#def R(k): # k is weight
+        
+  #      lis=list(range(0,k))
+  #      r=np.linalg.matrix_rank(conjecturematrix(k)[0])
+  #      ker=k-r
+  
 
 # Give all admissible indices of weight w and depth <=2
 def inddepth(w,d): #w is weight, d is depth     
@@ -1155,6 +1192,43 @@ def inddepth(w,d): #w is weight, d is depth
         if len(i)<=d:
             s+=[i]
     return s    
+    
+
+def R(k):
+    
+    r=0
+    
+    x=[]
+    x+=[conjecturematrix(k)[0]]
+    x+=[conjecturematrix(k)[2]]
+    row=len(x[0][0])
+    r=np.linalg.matrix_rank(x[0])
+    i=row-r
+
+    c=0
+    for j in range(row):
+        if r==np.linalg.matrix_rank(np.delete(x[0], j, axis=1)):
+            x[0]=np.delete(x[0], j, axis=1)
+            c+=1
+            del x[1][j]
+            
+        if c==i:
+            break
+        
+    x[0]=Matrix(x[0])
+    
+    return x
+        
+def checkpr(p):
+    
+    i=0
+    for n in p:
+        if n%2==0:
+            i+=1
+    
+    return i<=1
+        
+          
     
 
 </script>
