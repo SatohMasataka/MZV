@@ -884,7 +884,7 @@ class word():
             for i in range(len(self.index.tolist())):
                 s+="z_"+str(self.index.tolist()[i]) + " "
                 
-            s=s[:-1]
+            
             
             return s
         
@@ -919,119 +919,6 @@ class word():
                 ss.addWord(U[n],word(t))
             
         return ss
-    
-    
-    def toHoffmanN(self):
-        k=sum(self.index.tolist())
-        l=[]
-        rel=wordlincomb()
-        s=[self.toMZV()];
-        
-        for i in where23(k):
-            l+=[indices(k)[i]]
-            
-        for m in l:
-            s+=[(-1)*word(np.array(m)).toMZV()]
-            
-        lis=list(gp.lindep(s))
-        dd=lis[0]
-        lis=lis[1:]
-        i=0
-        
-        for n in lis:
-            rel.addWord(n/dd,word(np.array(l[i])))
-            i+=1
-            
-        return rel
-
-
-
-    def toMZVLatex(self):
-        s=self.toLatex()
-        
-        s1='\\'
-        s1+="zeta{"
-        d = {' ': ',', 'z': None, '_':None}  
-        tbl = str.maketrans(d)  
-        s1 += s.translate(tbl)
-        s1+='}'
-        
-        print(s1)
-        return 
-
-    def toMZVLatex1(self):
-        s=self.toLatex()
-        
-        s1='\\'
-        s1+="zeta{"
-        d = {' ': ',', 'z': None, '_':None}  
-        tbl = str.maketrans(d)  
-        s1 += s.translate(tbl)
-        s1+='}'
-
-        return s1
-    
-    
-    def regst(self): # ind : word
-
-        t=self.makeXY()
-        j=0
-
-        while(1):
-        
-            if len(t.index.tolist())==0:
-              #  return "困った"
-                break
-            
-            if t.index[0]==0:
-                 break
-            j+=1
-            t=t.removeFirstLetter()
-            
-        w=t.makeZ() #w_0
-
-        s=wordlincomb()
-
-        for i in range(j+1):
-            p=[]
-            p=countY(j-i).index.tolist()+w.index.tolist()
-            s.addLinComb((-1)^(i)/factorial(i)*contistY(i)*word(p))
-           # print(s)
-        
-        if len(s.lincomb)==0:
-            return 0
-    
-        return s
-    
-    
-    def regsh(self): # ind : word
-        t= self.makeXY()
-        j=0
-
-        while(1):
-            if len(t.index.tolist())==0:
-               # return "困った"
-                break
-            
-            if t.index[0]==0:
-                 break
-            j+=1
-            t=t.removeFirstLetter()
-            
-    
-        w=t.makeZ() #w_0
-        s=wordlincomb()
-        for i in range(j+1):
-            p=[]
-            p=countY(j-i).index.tolist()+w.index.tolist()
-            s.addLinComb((-1)^(i)*countY(i)%word(p)) 
-           # print(s)
-        
-        if len(s.lincomb)==0:
-            return 0
-    
-        return s
-        
     
             
 
@@ -1224,18 +1111,16 @@ class wordlincomb:
     #ここでは同じwordは係数を計算しまとめられるようにもしている
     def addWord(self,factor,w):
         # look for the word and if its already in our lincomb then add the factor
-        if factor!=0:
-                for wo in self.lincomb:
-                    if wo[1]==w: #selfの中に格納されている word型の値が引数のwordに等しい場合
-                        wo[0]+=factor  #selfの中に格納されている wordの係数に引数のwordの係数を想定したfactorを加える
-
-                        if wo[0]==0: #係数が0となる場合
-                            self.lincomb.remove(wo) #元のlincomb型の中から係数0とその組みとなるwordを消す
-                        return 
-
-                    # the word w is not there yet, so add it
-                self.lincomb.append([factor,w]) #計算したfactorと引数のword型　wを組みにしてlincomb型に追加する
         
+        for wo in self.lincomb:
+            if wo[1]==w: #selfの中に格納されている word型の値が引数のwordに等しい場合
+                wo[0]+=factor  #selfの中に格納されている wordの係数に引数のwordの係数を想定したfactorを加える
+                
+                if wo[0]==0: #係数が0となる場合
+                    self.lincomb.remove(wo) #元のlincomb型の中から係数0とその組みとなるwordを消す
+                return 
+        # the word w is not there yet, so add it
+        self.lincomb.append([factor,w]) #計算したfactorと引数のword型　wを組みにしてlincomb型に追加する
      
     # Add a linear combination of word to the current linear combination
     #addlinConb関数を定義
@@ -1252,29 +1137,6 @@ class wordlincomb:
             s+=w[0]*(w[1].toMZV())
         
         return s
-    
-
-    
-    def regst(self):
-        
-        rel=wordlincomb()
-        for t in self.lincomb:
-            rel.addLinComb(t[0]*(t[1].regst()))
-    
-        
-        return rel
-    
-    def regsh(self):
-        
-        rel=wordlincomb()
-        
-        for t in self.lincomb:
-            rel.addLinComb(t[0]*(t[1].regsh()))
-    
-        
-        return rel
-    
-    
 
                 
     #文字列表現のためのメソッド(既存の計算などがある公式的な文字列表現)
@@ -1294,7 +1156,7 @@ class wordlincomb:
     
     def toLatex(self):
         if self.lincomb==[]: #self　に空のリストが格納されている場合
-            return "" 
+            return "" #(empty) と表現するようにする
         ret=""# retを空の文字列と定義する
         s=""
         for w in self.lincomb: 
@@ -1315,37 +1177,6 @@ class wordlincomb:
         print(s)
             
         pass
-    
-    def toMZVLatex(self):
-        
-        if self.lincomb==[]: #self　に空のリストが格納されている場合
-            return "" 
-        
-        ret="" # retを空の文字列と定義する
-        s=""
-        for w in self.lincomb: 
-            if denominator(w[0])==1:
-                ret+=["+",["","+"][w[0]>0]+["-",str(w[0])][w[0]!=-1]][w[0]!=1]+w[1].toMZVLatex1()
-            
-            elif denominator(w[0])!=1:
-                s="\\frac{"+str(numerator(w[0]).abs())+"}{"+ str(denominator(w[0])) + "}"
-                ret+=["+",["","+"][w[0]>0]+[s,"-"+s][w[0]<0]][w[0]!=1]+w[1].toMZVLatex1()
-                
-            s=[ret,ret[1:]][ret[0]=="+"] #先頭が+から始まる場合は+を除いて ret を返す
-            
-        print(s)
-            
-        pass
-    
-    
-    
-    
-    
-
-    
-    
-    
-    
 
       
 #後に重さkのadmissible indexを全て列挙する関数 indicesを定義する際に用いる
