@@ -751,6 +751,597 @@ class mzvlincomb:
 
         return 0
     
+class word():
+    
+    index=np.array([]) # index に numpyのarray型に空のリストを入れたものを格納する
+    
+    def __init__(self,*args): #インスタンス化メソッド (初期値の設定)
+        if len(args) == 1: #入力された値(arg)の長さが1である場合
+            self.index=np.array(args[0],dtype=object) #self.indexにnumpyのarray型で文字列args[0]を格納する
+                                                       #つまり初期値で１文字の時char型でなく文字列として格納するようにする
+ 
+    # Length of a word
+    #wordの長さの定義
+    def len(self):
+        return len(self.index)
+    
+    def toMZV(self):
+        return gp.zetamult(self.index.tolist())
+    
+    # When are two words the same?
+    #wordの値が等しい時の定義
+    def __eq__(self, other):  #__eq__ := ''=''
+        return np.array_equal(self.index, other.index)
+    
+    def __neg__(self):
+        return -1*self
+            
+    #引き算の定義
+    def __sub__(self, other):#__sub__ := ''-''
+        return self+(-1)*other #既に和が定義されているため-(1)倍を利用して定義する
+        
+    # Adding two words into one linear combination    
+    #wordの(相手がwrodlincombの元でも大丈夫)の和の定義 (返す時の元はwordlincombの元であることに注意)
+    def __add__(self,other):
+
+        #Check if other is wordlincomb
+        if isinstance(other,wordlincomb): #other が　wordlincombの元であるときは　以下の処理を行う
+            return wordlincomb(self) + other #selfをwordlincombの型としてother を加える
+        
+        #以下はother と self が共に　word である状況
+        ret=wordlincomb() #空のword を用意する
+        ret.addWord(1,self) #係数を１としてselfを ret(空のword) に加える
+        ret.addWord(1,other)#係数を１としてotherを ret(係数1のself が入ったword) に加える
+        
+        return ret #上で計算した　ret  (wordlincomb型)を返す
+    
+    # Removes the first letter of this word 
+    # wordの最初の文字を削除するための関数　　（のちにHormonic productで使うため　）
+    def removeFirstLetter(self):
+        if len(self.index)==1: #最初からwordの長さが1である場合は空のwordを返す
+            return word()
+        else: #その他の場合(長さが１より長い)
+            return word(self.index[1:]) #最初のwordから先頭の一文字消した値を返す
+             
+    # Translates the word in z_j into the 01-alphabet
+    #入力されたword　の値を0, 1で変換する。 (dualなどで利用できる)
+    def makeXY(self):
+        z=[] #リスト型の空の z を用意する
+        for w in self.index:
+            for j in range(w-1): #jがw-1個 z に [0]を追加する
+                  z.append(0) 
+            z.append(1) #ループ終わりに　[1]を追加する (つまり、w個目に初めて１が出るリスト)
+            
+        return word(z) #用意した z をword型に変換して返す
+    
+    
+    # Translates the word in 01 into the z-alphabet
+    #入力された(0と1からなる)　wordの値を 一般の形で変換する。 (dualなどで利用できる)
+    def makeZ(self):
+        z=[] #空のリスト型 z を用意する
+        i=0 #カウント用の変数
+        for w in self.index: 
+            if w==0: #self.index (word型)に格納されている値が０であるとき　
+                i+=1 #i　に１を加える
+            elif w==1:#self.index (word型)に格納されている値が1であるとき　i　に１を加える
+                i+=1 #i　に１を加える
+                z.append(i) #z にこれまで数えてきた [i] を追加する
+                i=0 # i を0に戻す
+        return word(z) # zをword型にして返す
+    
+    #Dual of this word
+    #wordに対しての "Dual"関数の定義
+    def dual(self):
+        t=self.makeXY() #用意されたwordをmakeXY関数により0,1に変換したものを t に格納
+         
+        for i in range(len(t.index)): #tの長さだけループする
+            if t.index[i]==0: #tの i　番目の 0 であるとき
+                t.index[i]=1 #t の　i 番目を１にする
+            elif t.index[i]==1:#tの i　番目の 0 であるとき
+                t.index[i]=0 #t の　i 番目を0にする
+                
+        l=t.index[::-1] #tの並び順を反転させたものを l に格納する (l　は　リスト型)
+        
+        return word(l).makeZ() #lをword型にしてmakeZ関数を通してz_  の形にする
+    
+
+    # harmonic product 
+    #word型での調和積を*を用いて定義(ここでの定義はwordlincomb で定義されたものを引用しているため詳しい仕組みはそちらで確認)
+    def __mul__(self, other):
+        # make the word into a linear combination and use the multiplication of lincomb
+        return other*wordlincomb(self)
+
+    # shuffle product
+    #word型でのシャッフル積を%を用いて定義(ここでの定義はwordlincomb で定義されたものを引用しているため詳しい仕組みはそちらで確認)
+    def __mod__(self, other):
+        return other % wordlincomb(self)
+       
+    # index shuffle product      
+    #word型でのindex シャッフル積を**を用いて定義(ここでの定義はwordlincomb で定義されたものを引用しているため詳しい仕組みはそちらで確認)
+    def __pow__(self, other):
+        # make the word into a linear combination and use the multiplication of lincomb
+        return other**wordlincomb(self)
+                    
+    # Scalar multiplication
+    #word型のスカラー倍を定義する(返すのはwordlincomb型である)
+    def __rmul__(self, other): #rmul は* の演算子であり右側の元のルールに従う (mulは左)
+        if isinstance(other,sage.rings.rational.Rational) or isinstance(other,sage.rings.integer.Integer):
+            #otherが　有理数(整数を含む)型である場合
+            return wordlincomb(other,self) #other が先頭のwordlincomb型を返す
+
+    
+    #文字列表現のためのメソッド(オリジナルのルールで文字列を作成する)
+    def __str__(self):
+        if len(self.index)==0: #値(word型)が空の場合 文字列としての[]を返す
+            return "[]"
+        else: #値(word型)が空でない場合 文字列として返す(self.index[1:-1]は最初の"["と最後の"]”を省略するために用いている)
+            return "["+str(self.index)[1:-1].replace(" ", ",")+"]"
+    
+    # Todo: Given back the word in latex form. Instead of "[1,2,3]" give "z_1 z_2 z_3"
+    def toLatex(self):
+            
+            s=""
+            for i in range(len(self.index.tolist())):
+                s+="z_"+str(self.index.tolist()[i]) + " "
+                
+            s=s[:-1]
+            
+            return s
+        
+        
+        
+        
+    def toHoffman(self):
+
+        if isHoffman(self.index.tolist()):
+            return wordlincomb(self)
+        
+        ss=wordlincomb()
+        rel=wordlincomb()
+        rel.addWord(1,self)
+        k=sum(self.index.tolist())
+        A=conjecturematrix(k)[0]
+        B=indvectorlist(rel)
+        for u in sorted(where23(k), reverse=True):
+             del B[u]
+       # print(B)
+        s=remove23(k)
+        #Y=A[s,[j for j in range(len(s))]]
+        Y=A[s]
+        x=Y.solve_right(vector(B))
+        #print(x)
+        #print(Y)
+        U=-A*x    
+        
+        for n in where23(k):
+            t=np.array(indices(k)[n])
+            if U[n] != 0:
+                ss.addWord(U[n],word(t))
+            
+        return ss
+    
+    
+    def toHoffmanN(self):
+        k=sum(self.index.tolist())
+        l=[]
+        rel=wordlincomb()
+        s=[self.toMZV()];
+        
+        for i in where23(k):
+            l+=[indices(k)[i]]
+            
+        for m in l:
+            s+=[(-1)*word(np.array(m)).toMZV()]
+            
+        lis=list(gp.lindep(s))
+        dd=lis[0]
+        lis=lis[1:]
+        i=0
+        
+        for n in lis:
+            rel.addWord(n/dd,word(np.array(l[i])))
+            i+=1
+            
+        return rel
+
+
+
+    def toMZVLatex(self):
+        s=self.toLatex()
+        
+        s1='\\'
+        s1+="zeta{"
+        d = {' ': ',', 'z': None, '_':None}  
+        tbl = str.maketrans(d)  
+        s1 += s.translate(tbl)
+        s1+='}'
+        
+        print(s1)
+        return 
+
+    def toMZVLatex1(self):
+        s=self.toLatex()
+        
+        s1='\\'
+        s1+="zeta{"
+        d = {' ': ',', 'z': None, '_':None}  
+        tbl = str.maketrans(d)  
+        s1 += s.translate(tbl)
+        s1+='}'
+
+        return s1
+    
+    
+    def regst(self): # ind : word
+
+        t=self.makeXY()
+        j=0
+
+        while(1):
+        
+            if len(t.index.tolist())==0:
+              #  return "困った"
+                break
+            
+            if t.index[0]==0:
+                 break
+            j+=1
+            t=t.removeFirstLetter()
+            
+        w=t.makeZ() #w_0
+
+        s=wordlincomb()
+
+        for i in range(j+1):
+            p=[]
+            p=countY(j-i).index.tolist()+w.index.tolist()
+            s.addLinComb((-1)^(i)/factorial(i)*contistY(i)*word(p))
+           # print(s)
+        
+        if len(s.lincomb)==0:
+            return 0
+    
+        return s
+    
+    
+    def regsh(self): # ind : word
+        t= self.makeXY()
+        j=0
+
+        while(1):
+            if len(t.index.tolist())==0:
+               # return "困った"
+                break
+            
+            if t.index[0]==0:
+                 break
+            j+=1
+            t=t.removeFirstLetter()
+            
+    
+        w=t.makeZ() #w_0
+        s=wordlincomb()
+        for i in range(j+1):
+            p=[]
+            p=countY(j-i).index.tolist()+w.index.tolist()
+            s.addLinComb((-1)^(i)*countY(i)%word(p)) 
+           # print(s)
+        
+        if len(s.lincomb)==0:
+            return 0
+    
+        return s
+        
+    
+            
+
+    #文字列表現のためのメソッド(既存の計算などがある公式的な文字列表現)
+    def __repr__(self):
+        return str(self.index)
+    
+    
+    # word型 と (word型もしくはwordlincomb型)の間の演算子& を定義 (後に調和積の定義で用いる)
+    #あるwordを他のwordもしくはworlincombのwordにあたる部分にそれぞれ追加していく役割を持つ。(最初のwordが左にくる)
+    def __and__(self, other):
+        
+        if isinstance(other,wordlincomb): #otherがwordlincomb型の場合
+            ret=wordlincomb()  #retを空のwordlincomb型と定義する
+            
+            for w in other.lincomb: #self(word型)と w[1] (word型)を連結したwordと w[1]の係数の役割を持つw[0]をret (wordlincomb型)に格納していく
+                ret.addWord(w[0], self & w[1])
+            
+            return ret # ret(wordlincomb型)を返す
+            
+        if isinstance(other, word): #otherがword型の場合
+            return word(np.concatenate((self.index,other.index))) #selfとotherを連結した値(word型)を返す
+    
+#word の線型結合を意識したclass 
+#値は [ [factor, word]  , [factor2, word2] , ...      ] の形になるようにする
+class wordlincomb:
+
+    lincomb=[];  #空のリスト型lincombを用意する
+    
+
+    def __init__(self,*args):  
+        self.lincomb=[]  #空のリスト型lincombを用意する
+        
+        if len(args)==1: #　argsの長さが1である場合
+            self.addWord(1,args[0]) #self に係数 1, word args[0] を格納する
+            
+        if len(args)==2: #　argsの長さが２である場合
+            self.addWord(args[0],args[1]) #self に係数 args[0], word args[1] を格納する
+        
+        pass  
+    
+    def makeXY(self): #wordlincomb型の値を引数にしたmakeXY関数の作成
+        ret = wordlincomb(); #空のwordlincomb型のretを用意する
+        
+        for w in self.lincomb: #引数のwordlincombから係数とその組となるwordにmakeXY関数により０、１に変換した値を用意した　ret　に格納する
+            ret.addWord(w[0],w[1].makeXY())
+        
+        return ret # ret を返す
+
+    def makeZ(self):
+        ret = wordlincomb(); #空のwordlincomb型のretを用意する
+        
+        for w in self.lincomb:  #引数のwordlincombから係数とその組となるwordにmakeZ関数により数値（自然数）に変換した値を用意した　ret　に格納する
+            ret.addWord(w[0],w[1].makeZ())
+        
+        return ret # ret を返す
+        
+     # Scalar multiplication from the left
+     #wordlincomb型のスカラー倍を定義する(返すのはwordlincomb型である)
+    def __rmul__(self, other): #rmul は* の演算子であり右側の元のルールに従う (mulは左)
+        if isinstance(other,sage.rings.rational.Rational) or isinstance(other,sage.rings.integer.Integer):#otherが　有理数(整数を含む)型である場合
+            ret=wordlincomb(); #空のwordlincomb型のretを用意する
+            for w in self.lincomb:  #引数のwordlincombから係数と引数otherの積と組となるwordを用意した　ret　に格納する
+                ret.addWord(w[0]*other,w[1])
+            return ret # ret を返す
+        return NotImplemented #左側の定義で処理する（下の__mul__の演算処理が行われる）
+    
+    # harmonic product & scalar multiplication from the right
+    #wordlincomb型での調和積を*を用いて定義 (右からのスカラー倍も同時に定義する)
+    def __mul__(self, other):
+        
+        # Scalar multiplication from the right 
+        #右からのスカラー倍の定義する
+        if isinstance(other,sage.rings.rational.Rational) or isinstance(other,sage.rings.integer.Integer):
+            #otherが　有理数(整数を含む)型である場合
+            ret=wordlincomb(); #空のwordlincomb型のretを用意する
+            for w in self.lincomb: #引数のwordlincombから係数と引数otherの積と組となるwordを用意した　ret　に格納する
+                ret.addWord(w[0]*other,w[1])
+            return ret # ret を返す       
+        
+        if isinstance(other,word): #otherが　word型である場合
+            other=wordlincomb(other) #word型をwordlincomb型にする
+            
+        ret=wordlincomb() #空のwordlincomb型のretを用意する
+        
+        
+        # Harmonic product
+        #調和積の定義
+        for w in self.lincomb:
+            #参考　　（H1） w * 1 = 1 * w = w
+            for v in other.lincomb:
+                if w[1].len()==0: #self に格納された word の長さが 0　である場合
+                    ret.addWord(w[0]*v[0],v[1]) # ret に　上の word と other の word の係数の積　と other の word を ret に格納する 
+                elif v[1].len()==0: #other に格納された word の長さが 0　である場合
+                    ret.addWord(w[0]*v[0],w[1]) # ret に　上の word と other の word の係数の積　と self の word を ret に格納する 
+                else: #その他の場合
+            #参考   (H2)z_p w1 * z_q w2 = z_p (w1 * z_q w2) + z_q(z_p w1 * w2) + z_p+q(w1 * w2)
+                    a=w[1].index[0] # w の word の最初の一文字を a に格納する
+                    b=v[1].index[0] # v の word の最初の一文字を a に格納する
+                    
+                    #z_p (w1 * z_q w2)
+                    ret.addLinComb( w[0]*v[0] * (word([a]) & (w[1].removeFirstLetter() * wordlincomb(v[1]) )) )
+                    #z_q(z_p w1 * w2)
+                    ret.addLinComb( w[0]*v[0] * (word([b]) & (wordlincomb(w[1]) * v[1].removeFirstLetter() ) )) 
+                    #z_p+q(w1 * w2)
+                    ret.addLinComb( w[0]*v[0] * (word([a+b]) & (w[1].removeFirstLetter() * v[1].removeFirstLetter() )) )
+        return ret # ret を返す
+    
+    
+    #wordlinconb型のshuffle積を%を用いて定義する
+    def __mod__(self, other):
+        return (self.makeXY() ** other.makeXY()).makeZ() #seelfとotherをmakeXY関数(wordlincomb用の方)を用いてそれぞれのwordを0,1に変換し
+                                                        #shuffle積__pow__(**)を行いmakeZ関数により　z_  の形にする
+    
+    
+    #wordlincomb型でのシャッフル積を**を用いて定義 (右からのスカラー倍も同時に定義する)
+    # shuffle product & scalar multiplication from the right
+    def __pow__(self, other):
+        
+        # Scalar multiplication from the right 
+        #右からのスカラー倍の定義する
+        if isinstance(other,sage.rings.rational.Rational) or isinstance(other,sage.rings.integer.Integer):
+            #otherが　有理数(整数を含む)型である場合
+            ret=wordlincomb(); #空のwordlincomb型のretを用意する
+            for w in self.lincomb:  #引数のwordlincombから係数と引数otherの積と組となるwordを用意した　ret　に格納する
+                ret.addWord(w[0]*other,w[1])
+            return ret  # ret を返す        
+        
+        if isinstance(other,word):#otherが　word型である場合
+            other=wordlincomb(other) #word型をwordlincomb型にする
+            
+        ret=wordlincomb() #空のwordlincomb型のretを用意する
+        
+        # Shuffle product
+        #シャッフル積の定義
+        for w in self.lincomb:
+            #参考 (S1) w ** 1 = 1 ** w = w
+            for v in other.lincomb:
+                if w[1].len()==0: #self に格納された word の長さが 0　である場合
+                    ret.addWord(w[0]*v[0],v[1]) # ret に　上の word と other の word の係数の積　と other の word を ret に格納する 
+                elif v[1].len()==0: #other に格納された word の長さが 0　である場合
+                    ret.addWord(w[0]*v[0],w[1]) # ret に　上の word と other の word の係数の積　と self の word を ret に格納する 
+                else: #その他の場合
+                    #参考　(S2) a ( w ** bv) + b ( aw ** b)
+                    a=w[1].index[0] # w の word の最初の一文字を a に格納する
+                    b=v[1].index[0] # v の word の最初の一文字を b に格納する
+                    
+                    # a ( w ** bv)
+                    ret.addLinComb( w[0]*v[0] * (word([a]) & (w[1].removeFirstLetter() ** wordlincomb(v[1]) )) )
+                    # b ( aw ** b)
+                    ret.addLinComb( w[0]*v[0] * (word([b]) & (wordlincomb(w[1]) ** v[1].removeFirstLetter() ) )) 
+        return ret # ret を返す
+          
+    # Gives the coefficient of the word "index"    
+    # self の中に格納されている word 中から引数と同じ word がある場合はその係数を返す関数　（特に、ない場合は0を返す） 
+    #後に、関係式を作りその際に係数からなる行列を作成する際に利用する
+    def getCoefficient(self,index):
+        for t in self.lincomb:
+            if t[1]==word(index): # self  の word の中でword型にした引数　index と等しいとき t[0] (selfの係数)を返す
+                return t[0]
+        return 0  #その他のとき0を返す
+    
+    #引き算の定義 (既に和とスカラー倍が定義されているためそれを利用する)
+    def __sub__(self, other):
+        return self+(-1)*other
+    
+    
+    # Add two linear combinations
+    #wordlincomb型での和を+を用いて定義
+    def __add__(self, other):
+        # Make an empty linear combination
+        ret=wordlincomb() #空のwordlincomb型のretを用意する
+        
+        # Add all words from self to this linear combination
+        for w in self.lincomb: # self の係数w[0]とword w[1] を ret 格納する
+            ret.addWord(w[0],w[1])   
+            
+        if isinstance(other,word): #otherがword型である場合
+            ret.addWord(1,other) #係数1 other (word型)をretに格納する
+        else: #その他の場合
+            # Add all words from other to this linear combination
+            for w in other.lincomb: # other の係数w[0]とword w[1] を ret 格納する
+                ret.addWord(w[0],w[1])  
+            
+        return ret  #ret を返す
+        
+    # Add a word to the linear combination
+    #addWord関数を定義　引数は３つでwordlincomb型と(wordの)係数とword型
+    #作成の目的はwordlincomb型の演算子(和や積)などを定義する際にword型の値をlincomb型の値の中に追加できるようにしたいため
+    #ここでは同じwordは係数を計算しまとめられるようにもしている
+    def addWord(self,factor,w):
+        # look for the word and if its already in our lincomb then add the factor
+        if factor!=0:
+                for wo in self.lincomb:
+                    if wo[1]==w: #selfの中に格納されている word型の値が引数のwordに等しい場合
+                        wo[0]+=factor  #selfの中に格納されている wordの係数に引数のwordの係数を想定したfactorを加える
+
+                        if wo[0]==0: #係数が0となる場合
+                            self.lincomb.remove(wo) #元のlincomb型の中から係数0とその組みとなるwordを消す
+                        return 
+
+                    # the word w is not there yet, so add it
+                self.lincomb.append([factor,w]) #計算したfactorと引数のword型　wを組みにしてlincomb型に追加する
+        
+     
+    # Add a linear combination of word to the current linear combination
+    #addlinConb関数を定義
+    #linconb型同士を１つにまとめる演算を作る 上で定義したword型とwordlincomb型をまとめるaddWord関数を利用して作成する
+    def addLinComb(self,wlc):
+        for w in wlc.lincomb:
+            self.addWord(w[0],w[1])  #引数のwordlincomb型のwlcの係数とwordをaddWord関数を用いてself(wordlincomb型)に追加していく
+            
+    
+    def toMZV(self):
+        s=0
+        
+        for w in self.lincomb:
+            s+=w[0]*(w[1].toMZV())
+        
+        return s
+    
+
+    
+    def regst(self):
+        
+        rel=wordlincomb()
+        for t in self.lincomb:
+            rel.addLinComb(t[0]*(t[1].regst()))
+    
+        
+        return rel
+    
+    def regsh(self):
+        
+        rel=wordlincomb()
+        
+        for t in self.lincomb:
+            rel.addLinComb(t[0]*(t[1].regsh()))
+    
+        
+        return rel
+    
+    
+
+                
+    #文字列表現のためのメソッド(既存の計算などがある公式的な文字列表現)
+    def __repr__(self):
+        if self.lincomb==[]: #self　に空のリストが格納されている場合
+            return "(empty)" #(empty) と表現するようにする
+        ret=""# retを空の文字列と定義する
+        for w in self.lincomb: 
+            #[A,B][条件]とした場合: 条件が True --> B , False --> A となることを利用する
+            #(最初にw[0]が1でない)  True --> (条件2) , False --> "+"
+            #(条件2) (i) w[0]が0より大きい True -->"+" , False --> "" 
+            #              (ii) w[0]が-1でない  True -->str(w[0])+"*" , False --> "-" 
+            #               (i)+(ii)
+            # これを繰り返し、ret に格納していく
+            ret+=["+",["","+"][w[0]>0]+["-",str(w[0])+"*"][w[0]!=-1]][w[0]!=1]+str(w[1])
+        return [ret,ret[1:]][ret[0]=="+"] #先頭が+から始まる場合は+を除いてret を返す
+    
+    def toLatex(self):
+        if self.lincomb==[]: #self　に空のリストが格納されている場合
+            return "" 
+        ret=""# retを空の文字列と定義する
+        s=""
+        for w in self.lincomb: 
+            #[A,B][条件]とした場合: 条件が True --> B , False --> A となることを利用する
+            #(最初にw[0]が1でない)  True --> (条件2) , False --> "+"
+            #(条件2) (i) w[0]が0より大きい True -->"+" , False --> "" 
+            #              (ii) w[0]が-1でない  True -->str(w[0])+"*" , False --> "-" 
+            #               (i)+(ii)
+            # これを繰り返し、ret に格納していく
+            if denominator(w[0])==1:
+                ret+=["+",["","+"][w[0]>0]+["-",str(w[0])][w[0]!=-1]][w[0]!=1]+w[1].toLatex()
+            
+            if denominator(w[0])!=1:
+                s="\\frac{"+str(numerator(w[0]).abs())+"}{"+ str(denominator(w[0])) + "}"
+                ret+=["+",["","+"][w[0]>0]+[s,"-"+s][w[0]<0]][w[0]!=1]+w[1].toLatex()
+                
+            s=[ret,ret[1:]][ret[0]=="+"] #先頭が+から始まる場合は+を除いて ret を返す
+        print(s)
+            
+        pass
+    
+    def toMZVLatex(self):
+        
+        if self.lincomb==[]: #self　に空のリストが格納されている場合
+            return "" 
+        
+        ret="" # retを空の文字列と定義する
+        s=""
+        for w in self.lincomb: 
+            if denominator(w[0])==1:
+                ret+=["+",["","+"][w[0]>0]+["-",str(w[0])][w[0]!=-1]][w[0]!=1]+w[1].toMZVLatex1()
+            
+            elif denominator(w[0])!=1:
+                s="\\frac{"+str(numerator(w[0]).abs())+"}{"+ str(denominator(w[0])) + "}"
+                ret+=["+",["","+"][w[0]>0]+[s,"-"+s][w[0]<0]][w[0]!=1]+w[1].toMZVLatex1()
+                
+            s=[ret,ret[1:]][ret[0]=="+"] #先頭が+から始まる場合は+を除いて ret を返す
+            
+        print(s)
+            
+        pass
+    
+    
+    
+    
+    
+
     
     
     
